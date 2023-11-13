@@ -35,7 +35,6 @@ class CheckCornerCase():
         self.client = client
         self.rec.start(self.client, self.i_rec)
         self.start = time.time()
-        self.ego_car_loc= td.travelled_distance
 
         setup = {}
         setup['date and time']      = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -68,7 +67,7 @@ class CheckCornerCase():
             json.dump(setup, f)
 
 
-    def gui(self, trigger, timer, sensor_name, ego_car_loc):
+    def gui(self, trigger, timer, sensor_name):
         """
         :param reason:  reason for triggering the CC ("brake" or "steer")
         :param client:  CARLA client
@@ -78,7 +77,6 @@ class CheckCornerCase():
         self.trigger        = trigger
         self.timer          = timer
         self.sensor_name    = sensor_name
-        self.ego_car_loc    = ego_car_loc
         if self.qrecording is not None: self.qrecording.wait_on()
         # time.sleep(2)
         self.rec.stop(self.client)
@@ -174,7 +172,6 @@ class CheckCornerCase():
         rows = []
         row = [    
             str(time.time() - self.timer), 
-            self.ego_car_loc,
             reason, 
             self.trigger,
             self.sensor_name,

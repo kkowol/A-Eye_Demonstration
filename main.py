@@ -8,6 +8,7 @@ import sys
 # sys.path.append("../config") # Adds higher directory to python modules path.
 import config as cfg
 
+#TODO: change to only select models and screen numbers
 
 class CornerCaseGen():
     def __init__(self):

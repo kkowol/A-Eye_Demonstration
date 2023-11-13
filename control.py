@@ -9,12 +9,9 @@
 # the official CARLA 0.9.10 repository: 
 # https://github.com/carla-simulator/carla/blob/0.9.10/PythonAPI/examples/manual_control_steeringwheel.py
 
-# Allows controlling a vehicle with one or two steering wheels 
+# Allows controlling a vehicle with one steering wheels 
 # and with a keyboard. 
-# This setup allows two modes:
-# 1) generating corner cases with two steering wheels and two 
-# human drivers 
-# 2) demonstrator for visualisation of an output of a semantic
+# This is a demonstrator for visualisation of an output of a semantic
 # segmentation network
 """
 Welcome to A-Eye: Driving with the eyes of AI. 
@@ -51,8 +48,7 @@ from utils.rec import QRecording
 from utils.save import save_csv
 from utils.carlaworld import TravelDistance, SpeedDisplay, TrafficLightsDisplay
 from utils.carlaworld import get_ego_car, remove_fences
-# from utils.spawn import spawning_radius
-# from utils.carla_classes import find_weather_presets, GnssSensor, HUD
+
 # ==============================================================================
 # -- GPU settings  --------------------------------------------------------
 # ==============================================================================
@@ -129,16 +125,7 @@ class HUD(object):
         self._show_info = False # change here when HUD should start at the beginning
         self._info_text = []
         self._server_clock = pygame.time.Clock()
-        #####
-        if cfg.live_plotter:
-            self.size_diag = 100
-            self.x_time = np.linspace(0,1,self.size_diag+1)[0:-1]
-            self.y_throttle = np.zeros(len(self.x_time))
-            self.y_brake = np.zeros(len(self.x_time))
-            self.y_steer = np.zeros(len(self.x_time))
-            self.line1 = []
-            self.line2 = []
-            self.line3 = []
+
 
     def on_world_tick(self, timestamp):
         self._server_clock.tick()
@@ -155,25 +142,6 @@ class HUD(object):
         c = world.player.get_control()
         
         # ------------------------------------------------------------------------
-        # throttle, brake and steeringwheel tracking added
-        # ------------------------------------------------------------------------
-        if cfg.live_plotter: #TODO: create class
-            self.y_throttle[-1] = c.throttle
-            self.y_brake[-1] = c.brake
-            self.y_steer[-1] = c.steer
-            
-            self.line1, self.line2, self.line3 = live_plotter(self.x_time,
-                                self.y_throttle,self.line1,
-                                self.y_brake,self.line2,
-                                (self.y_steer)*229.241,self.line3) 
-                                # output of steeringwheel = [-1.963455, 1.963129] 
-                                # and steering range = 900°
-                                # --> factor ca. 229.241
-
-            self.y_throttle = np.append(self.y_throttle[1:],0.0)
-            self.y_brake= np.append(self.y_brake[1:],0.0)
-            self.y_steer = np.append(self.y_steer[1:],0.0)
-        # ------------------------------------------------------------------------
         # 
         # ------------------------------------------------------------------------
 
@@ -183,25 +151,11 @@ class HUD(object):
         heading += 'W' if -0.5 > t.rotation.yaw > -179.5 else ''
         vehicles = world.world.get_actors().filter('vehicle.*')
 
-        # for vehicle in vehicles:
-        #     if not vehicle.attributes:
-        #         pass
-        #     else:
-        #         if vehicle.attributes['role_name'] == 'hero':
-        #             ego_car = vehicle
-        #             break
-        
-        # print('Actor ID: ', ego_car.id)
-        # print('Location ', ego_car.get_location())
-        # print('velo [m/s]: ', ego_car.get_velocity())
-        # print('transform: ', ego_car.get_transform())
-
         self._info_text = [
             'Server:  % 16.0f FPS' % self.server_fps,
             'Client:  % 16.0f FPS' % clock.get_fps(),
             '',
             'Vehicle: % 20s' % get_actor_display_name(world.player, truncate=20),
-#            'Map:     % 20s' % world.world.map_name,
             'Simulation time: % 12s' % datetime.timedelta(seconds=int(self.simulation_time)),
             '',
             'Speed:   % 15.0f km/h' % (3.6 * math.sqrt(v.x**2 + v.y**2 + v.z**2)),
@@ -546,7 +500,7 @@ class DualControl(object):
     first:      plug in steering wheel for safety driver
     second:     plug in steering wheel for semantic driver
     """
-    def __init__(self, world, start_in_autopilot, client, ccc, start, weather):
+    def __init__(self, world, start_in_autopilot, client, start, weather):
         self._previous_steer_safety_driver = 0 
         self._autopilot_enabled = start_in_autopilot
         self.i_rec = 1 # start with 1
@@ -567,8 +521,6 @@ class DualControl(object):
             raise NotImplementedError("Actor type not supported")
         self._steer_cache = 0.0
 
-        #check corner case
-        self.ccc = ccc
 
         # initialize steering wheel
         pygame.joystick.init()
@@ -599,9 +551,8 @@ class DualControl(object):
             self._reverse_idx_right = int(self._parser.get('G29 Racing Wheel', 'reverse_right'))
 
             
-    def parse_events(self, world, clock, travel_distance):
+    def parse_events(self, world, clock):
         self.get_inf_name = world.camera_manager.get_inf_name
-        self.ego_car_loc = travel_distance.travelled_distance
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -639,8 +590,6 @@ class DualControl(object):
                     world.restart()
                 elif event.key == K_F1:
                     world.hud.toggle_info()
-                elif event.key == K_F2:
-                    self.timer = self.ccc.gui('brake', self.timer, self.get_inf_name, self.ego_car_loc)
                 # elif event.key == K_h or (event.key == K_SLASH and pygame.key.get_mods() & KMOD_SHIFT):
                 #     world.hud.help.toggle()
                 elif event.key == K_TAB:
@@ -724,8 +673,6 @@ class DualControl(object):
         numAxes = self._joystick.get_numaxes()
         jsInputs = [float(self._joystick.get_axis(i)) for i in range(numAxes)]
         # print (jsInputs)
-        jsButtons = [float(self._joystick.get_button(i)) for i in
-                     range(self._joystick.get_numbuttons())]
         if self.joystick_count > 1:
             numAxes_safety_driver = self._joystick_safety_driver.get_numaxes()
             jsInputs_safety_driver = [float(self._joystick_safety_driver.get_axis(i)) for i in range(numAxes_safety_driver)]
@@ -750,9 +697,7 @@ class DualControl(object):
             brakeCmd_safety_driver = 1.6 + (2.05 * math.log10(
             -0.7 * jsInputs_safety_driver[self._brake_idx] + 1.4) - 1.2) / 0.92
         
-        ###############
-        # retrieve throttle/brake for sem/safety driver
-        pedal_tracking(throttleCmd, throttleCmd_safety_driver, brakeCmd, brakeCmd_safety_driver, time.time()-self.timer) 
+        
         ###############
         if throttleCmd <= 0:
             throttleCmd = 0
@@ -779,12 +724,7 @@ class DualControl(object):
             if abs(self._previous_steer_safety_driver - steerCmd_safety_driver)>0:
                 self._control.steer = steerCmd_safety_driver
                 self._previous_steer_safety_driver = steerCmd_safety_driver
-                # print('steer intervention by safety_driver')
-                if self.counter_cc > 10: # prevent small movements from disturbing the ride
-                     self.timer = self.ccc.gui('steer', self.timer, self.get_inf_name, self.ego_car_loc)
-                else: 
-                    self.counter_cc +=1
-                
+                # print('steer intervention by safety_driver')                
             else: 
                 self._control.steer = steerCmd
                 self.counter_cc = 0     # set counter to zero
@@ -793,11 +733,9 @@ class DualControl(object):
             if brakeCmd_safety_driver > 0 and brakeCmd >0: 
                 #when both step on the brake, the safety driver has priority
                 self._control.brake = brakeCmd_safety_driver
-                self.timer =self.ccc.gui('brake',  self.timer, self.get_inf_name, self.ego_car_loc)
                 # print('brake intervention by safety_driver')
             elif brakeCmd_safety_driver > 0:
                 self._control.brake = brakeCmd_safety_driver
-                self.timer =self.ccc.gui('brake', self.timer, self.get_inf_name, self.ego_car_loc)
                 # print('brake intervention by safety_driver')
             else:
                 self._control.brake = brakeCmd
@@ -874,10 +812,6 @@ class DualControl(object):
 
 
 
-
-
-
-
 # ==============================================================================
 # -- CameraManager -------------------------------------------------------------
 # ==============================================================================
@@ -905,11 +839,14 @@ class CameraManager(object):
         self.model_name_3 = get_model_name(cfg.ckpt_3)
         self.model_name_4 = get_model_name(cfg.ckpt_4)
         
-        if hud.dim[0] == 3840 or hud.dim[0] == 7680:              # move camera because of new resolution 
+        if hud.dim[0] == 3840:              # move camera for 3 screens 
                 self._camera_transforms = [
-                    carla.Transform(carla.Location(x=-12.5, z=2.8), carla.Rotation(pitch=-5)),
-                    carla.Transform(carla.Location(x=1.6, z=1.7))]
-        else:	# original setup
+                    carla.Transform(carla.Location(x=-12.5, z=2.8), carla.Rotation(pitch=-5)), # standard
+                    carla.Transform(carla.Location(x=0.0, z=1.5)),
+                    carla.Transform(carla.Location(x=0.7, z=1.1), carla.Rotation(pitch=-5)), # bonnet
+                    carla.Transform(carla.Location(x=-0.5, y= -0.4, z=1.15)),  # cockpit view
+                    carla.Transform(carla.Location(x=0.0, z=60.0), carla.Rotation(pitch=-90))] #
+        else:
             self._camera_transforms = [
                 carla.Transform(carla.Location(x=1.6, z=1.7)),
                 carla.Transform(carla.Location(x=0.1, z=1.4)),  # bonnet
@@ -1071,18 +1008,11 @@ def game_loop(args):
         
         weather = Weather(client, args.weather)
         
-        if args.save_inference_images: 
-            qrecording = QRecording(cfg.fps_server, 
-                                    cfg.save_seconds_before_cc, 
-                                    cfg.record_every_x_frames)
-        else:
-            qrecording= None
+        qrecording= None
         world = World(client.get_world(), hud, args.filter, path, cfg.model_name, qrecording, args)
-        if not args.demonstration: weather.save_weather()
+        
         #----------------- controller --------------------
-        td = TravelDistance(world.get_ego_location())
-        ccc = CheckCornerCase(world, args, client, td, qrecording, weather) 
-        controller = DualControl(world, args.autopilot, client, ccc, start, weather)
+        controller = DualControl(world, args.autopilot, client, start, weather)
 
         #----------------- visualisation ----------------- 
         # show traffic lights and speed
@@ -1090,29 +1020,21 @@ def game_loop(args):
         tld = TrafficLightsDisplay(world.world)
         speedmeter = SpeedDisplay()
         clock = pygame.time.Clock()
-        
+        # remove_fences(world.world)
+
         #----------------- time step --------------------- 
         # *** fixed time step configured ***
         #------------------------------------------------- 
         settings = world.world.get_settings()
         settings.fixed_delta_seconds=1/cfg.fps_server
         world.world.apply_settings(settings)
-
-        ego_car = get_ego_car(world.world.get_actors())
-        frame = 1
-        record_every_x_frames = 10
-        remove_fences(world.world)
                 
         while True:
             clock.tick_busy_loop(cfg.fps_server)
-            if controller.parse_events(world, clock, td):
+            if controller.parse_events(world, clock):
                 return 
             world.tick(clock)
             world.render(display)
-
-            if frame % record_every_x_frames == 0:
-                save_csv(ego_car, world.world.get_actors(), cfg.radius_trajectory, frame, start)
-            frame += 1
 
             tld.fetch_tl_landmarks(world.player.get_location(), distance=50)
             if cfg.available_displays == 3:
@@ -1120,16 +1042,9 @@ def game_loop(args):
             else:
                 tld.render(display, (cfg.resolution[0]-100, 30)) 
             tld.change_tl_state()
-            td.next(world.get_ego_location())
             speedmeter.render(world.player, display, (cfg.width//2, 30))
             pygame.display.flip()
     finally:
-        if ccc is not None: 
-            ccc.delete_recording()
-            print('recording stopped')
-        if not args.demonstration:
-            with open(os.path.join(path, '00_log', 'recording_time_seconds.txt'), 'a') as file:
-                    file.write('{}\n'.format(int(time.time()-start)))
         if world is not None:            
             world.destroy()
         pygame.quit()

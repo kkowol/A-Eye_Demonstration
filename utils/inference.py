@@ -5,6 +5,7 @@ import os
 from torchvision.transforms import Compose, Normalize, ToTensor, ToPILImage
 from models.fast_scnn import FastSCNN
 from models.bisenetv2 import BiSeNetV2
+from torch2trt import TRTModule
 from utils.carla_dataloader import Carla
 import config as cfg
 import carla
@@ -48,10 +49,10 @@ class Inference():
             
             if self.model_name == models[0]:
                 self.network = FastSCNN(in_channels=3, num_classes=Carla.num_train_ids)
-                
+                self.network = TRTModule()
             elif self.model_name == models[1]:
                 self.network = BiSeNetV2(n_classes=Carla.num_train_ids)
-                # self.network = TRTModule()
+                self.network = TRTModule()
             self.network.load_state_dict(torch.load(os.path.join(os.getcwd(), 'weights', self.ckpt + '.pth')))
             self.network.cuda().eval()
 
