@@ -37,19 +37,20 @@ def output_folders_inference():
 
 
 class Inference():
-    def __init__(self, ckpt):
+    def __init__(self, ckpt, weather):
         if ckpt:
             self.ckpt = ckpt
-            self.torch_transform = Compose([ToTensor(), Normalize(Carla.mean, Carla.std)])
-            
+            self.weather = weather
+            self.load_mean_std()
+
             models =['FastSCNN', 'bisenetv2']
             for model in models:
                 if model in ckpt:
                     self.model_name = model
-            
+
             if self.model_name == models[0]:
                 self.network = FastSCNN(in_channels=3, num_classes=Carla.num_train_ids)
-                self.network = TRTModule()
+                # self.network = TRTModule()
             elif self.model_name == models[1]:
                 self.network = BiSeNetV2(n_classes=Carla.num_train_ids)
                 self.network = TRTModule()
@@ -79,3 +80,21 @@ class Inference():
         #----------- unique/converting -----------
         mask = np.array(carla_colorize(pred)) 
         return mask
+    
+    def load_mean_std(self):
+        if self.weather == 'mix':
+            mean   = (0.4573, 0.4412, 0.4223)
+            std    = (0.1719, 0.1657, 0.1574)
+        elif self.weather == 'clear' or self.weather == None:
+            mean   = (0.5359, 0.5150, 0.4899)
+            std    = (0.2362, 0.2269, 0.2197)
+        elif self.weather == 'rain':
+            mean   = (0.5373, 0.5167, 0.4927)
+            std    = (0.2094, 0.2027, 0.2008)
+        elif self.weather == 'fog':
+            mean   = (0.6158, 0.6049, 0.5973)
+            std    = (0.1795, 0.1745, 0.1702)
+        elif self.weather == 'night':
+            mean   = (0.3195, 0.2995, 0.2713)
+            std    = (0.1844, 0.1750, 0.1579)
+        self.torch_transform = Compose([ToTensor(), Normalize(mean, std)])
