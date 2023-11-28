@@ -42,9 +42,12 @@ save_seconds_before_cc = 7
 record_every_x_frames = 3
 radius_trajectory = 15
 
-available_displays= 3 # [1,3]
-# resolution = [1280, 640] # [width, height]
-resolution = [3840, 640] # 3 screens
+available_displays= 1 # [1,3]
+if available_displays > 1:
+    resolution = [3840, 640] # 3 screens
+else:
+    resolution = [1280, 640] # [width, height]
+
 width = resolution[0]
 height = resolution[1]
 model_name='fast_scnn'
@@ -56,12 +59,9 @@ nr_walkers  = [50, 100]           # [min, max]
 
 
 #---------------------------- checkpoints ----------------------------
-# ckpt_1 = 'mix_bisenetv2_noTRT'
-# ckpt_2 = 'rain_bisenetv2_noTRT'
-# ckpt_3 = 'fog_bisenetv2_noTRT'
-# ckpt_4 = 'night_bisenetv2_noTRT'
-
-ckpt_1 = 'mix_FastSCNN_TRT3screens'
-ckpt_2 = 'mix_FastSCNN_TRT3screens'
-ckpt_3 = 'mix_FastSCNN_TRT3screens'
-ckpt_4 = 'mix_FastSCNN_TRT3screens'
+ckpt_1 = 'clear_FastSCNN_CARLA10noTRT'
+ckpt_2 = 'mix_FastSCNN_CARLA10noTRT'
+ckpt_3 = 'rain_FastSCNN_CARLA10noTRT'
+ckpt_4 = 'fog_FastSCNN_CARLA10noTRT'
+ckpt_5 = 'night_FastSCNN_CARLA10noTRT'
+ckpt_6 = 'clear_bisenetv2_CARLA10TRT1screen'

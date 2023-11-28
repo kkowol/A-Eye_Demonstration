@@ -38,15 +38,11 @@ import weakref
 import time
 import torch
 
-from utils.cc import CheckCornerCase
 from utils.weather import Weather
 from utils.inference import Inference
 from utils.tools import TimeMeasurement, get_folder_name, get_model_name 
 from utils.tools import output_folders_data_generator as output_folders
-from utils.tracking import pedal_tracking
-from utils.rec import QRecording
-from utils.save import save_csv
-from utils.carlaworld import TravelDistance, SpeedDisplay, TrafficLightsDisplay
+from utils.carlaworld import SpeedDisplay, TrafficLightsDisplay
 from utils.carlaworld import get_ego_car, remove_fences
 
 # ==============================================================================
@@ -830,14 +826,19 @@ class CameraManager(object):
         self.qrecording = qrecording
         self.time_measurement = TimeMeasurement()
 
-        self.inf_1 = Inference(cfg.ckpt_1)
-        self.inf_2 = Inference(cfg.ckpt_2)
-        self.inf_3 = Inference(cfg.ckpt_3)
-        self.inf_4 = Inference(cfg.ckpt_4)
         self.model_name_1 = get_model_name(cfg.ckpt_1)
         self.model_name_2 = get_model_name(cfg.ckpt_2)
         self.model_name_3 = get_model_name(cfg.ckpt_3)
         self.model_name_4 = get_model_name(cfg.ckpt_4)
+        self.model_name_5 = get_model_name(cfg.ckpt_5)
+        self.model_name_6 = get_model_name(cfg.ckpt_6)
+        
+        self.inf_1 = Inference(cfg.ckpt_1, weather = self.model_name_1.split(' ')[0])
+        self.inf_2 = Inference(cfg.ckpt_2, weather = self.model_name_2.split(' ')[0])
+        self.inf_3 = Inference(cfg.ckpt_3, weather = self.model_name_3.split(' ')[0])
+        self.inf_4 = Inference(cfg.ckpt_4, weather = self.model_name_4.split(' ')[0])
+        self.inf_5 = Inference(cfg.ckpt_5, weather = self.model_name_5.split(' ')[0])
+        self.inf_6 = Inference(cfg.ckpt_6, weather = self.model_name_6.split(' ')[0])
         
         if hud.dim[0] == 3840:              # move camera for 3 screens 
                 self._camera_transforms = [
@@ -861,12 +862,14 @@ class CameraManager(object):
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_2}'],
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_3}'],
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_4}'],
+            ['sensor.camera.rgb', cc.Raw, f'{self.model_name_5}'],
+            ['sensor.camera.rgb', cc.Raw, f'{self.model_name_6}'],
             ########################################################################
             ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
                 'ground truth'],
             ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)'],
-            ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
-            ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
+            # ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
+            # ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
             ]
         world = self._parent.get_world()
         bp_library = world.get_blueprint_library()
@@ -964,6 +967,16 @@ class CameraManager(object):
         elif self.sensors[self.index][2].startswith(f'{self.model_name_4}'):
             self.get_inf_name = f'{self.model_name_4}'
             mask = self.inf_4.processing(image)
+            if self.qrecording is not None: self.qrecording.add(mask, image)
+            self.surface = pygame.surfarray.make_surface(mask.swapaxes(0, 1))
+        elif self.sensors[self.index][2].startswith(f'{self.model_name_5}'):
+            self.get_inf_name = f'{self.model_name_5}'
+            mask = self.inf_5.processing(image)
+            if self.qrecording is not None: self.qrecording.add(mask, image)
+            self.surface = pygame.surfarray.make_surface(mask.swapaxes(0, 1))
+        elif self.sensors[self.index][2].startswith(f'{self.model_name_6}'):
+            self.get_inf_name = f'{self.model_name_6}'
+            mask = self.inf_6.processing(image)
             if self.qrecording is not None: self.qrecording.add(mask, image)
             self.surface = pygame.surfarray.make_surface(mask.swapaxes(0, 1))
         ########################################################################
