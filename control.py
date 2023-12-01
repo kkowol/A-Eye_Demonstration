@@ -840,7 +840,7 @@ class CameraManager(object):
         self.inf_4 = Inference(cfg.ckpt_4, weather = self.model_name_4.split(' ')[0])
         self.inf_5 = Inference(cfg.ckpt_5, weather = self.model_name_5.split(' ')[0])
         self.inf_6 = Inference(cfg.ckpt_6, weather = self.model_name_6.split(' ')[0])
-        self.inf_7 = Inference(cfg.ckpt_6, weather = self.model_name_7.split(' ')[0])
+        self.inf_7 = Inference(cfg.ckpt_7, weather = self.model_name_7.split(' ')[0])
         
         if hud.dim[0] == 3840:              # move camera for 3 screens 
                 self._camera_transforms = [
