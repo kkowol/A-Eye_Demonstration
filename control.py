@@ -832,6 +832,7 @@ class CameraManager(object):
         self.model_name_4 = get_model_name(cfg.ckpt_4)
         self.model_name_5 = get_model_name(cfg.ckpt_5)
         self.model_name_6 = get_model_name(cfg.ckpt_6)
+        self.model_name_7 = get_model_name(cfg.ckpt_7)
         
         self.inf_1 = Inference(cfg.ckpt_1, weather = self.model_name_1.split(' ')[0])
         self.inf_2 = Inference(cfg.ckpt_2, weather = self.model_name_2.split(' ')[0])
@@ -839,6 +840,7 @@ class CameraManager(object):
         self.inf_4 = Inference(cfg.ckpt_4, weather = self.model_name_4.split(' ')[0])
         self.inf_5 = Inference(cfg.ckpt_5, weather = self.model_name_5.split(' ')[0])
         self.inf_6 = Inference(cfg.ckpt_6, weather = self.model_name_6.split(' ')[0])
+        self.inf_7 = Inference(cfg.ckpt_6, weather = self.model_name_7.split(' ')[0])
         
         if hud.dim[0] == 3840:              # move camera for 3 screens 
                 self._camera_transforms = [
@@ -864,12 +866,10 @@ class CameraManager(object):
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_4}'],
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_5}'],
             ['sensor.camera.rgb', cc.Raw, f'{self.model_name_6}'],
+            ['sensor.camera.rgb', cc.Raw, f'{self.model_name_7}'],
             ########################################################################
             ['sensor.camera.semantic_segmentation', cc.CityScapesPalette,
                 'ground truth'],
-            ['sensor.lidar.ray_cast', None, 'Lidar (Ray-Cast)'],
-            # ['sensor.camera.depth', cc.Depth, 'Camera Depth (Gray Scale)'],
-            # ['sensor.camera.depth', cc.LogarithmicDepth, 'Camera Depth (Logarithmic Gray Scale)'],
             ]
         world = self._parent.get_world()
         bp_library = world.get_blueprint_library()
@@ -977,6 +977,11 @@ class CameraManager(object):
         elif self.sensors[self.index][2].startswith(f'{self.model_name_6}'):
             self.get_inf_name = f'{self.model_name_6}'
             mask = self.inf_6.processing(image)
+            if self.qrecording is not None: self.qrecording.add(mask, image)
+            self.surface = pygame.surfarray.make_surface(mask.swapaxes(0, 1))
+        elif self.sensors[self.index][2].startswith(f'{self.model_name_7}'):
+            self.get_inf_name = f'{self.model_name_7}'
+            mask = self.inf_7.processing(image)
             if self.qrecording is not None: self.qrecording.add(mask, image)
             self.surface = pygame.surfarray.make_surface(mask.swapaxes(0, 1))
         ########################################################################
